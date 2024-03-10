@@ -1,0 +1,33 @@
+on:
+    push:
+      branches: [ "main" ]
+
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - uses: actions/setup-dotnet@v3
+          with:
+            dotnet-version: '8.0.x' # I picked LTS
+        - name: Install dependencies
+          run: dotnet restore
+        - name: Test with dotnet
+          run: dotnet test --logger trx --results-directory "TestResults"
+        - name: Upload dotnet test results
+          uses: actions/upload-artifact@v4
+          with:
+            name: dotnet-results
+            path: TestResults
+          # Use always() to always run this step to publish test results when there are test failures
+          if: ${{ always() }}
+        - name: Build the Docker image
+          path: path/to/csproj/dir
+          run: docker build . -t docker-hub-username/container-name:latest
+        - name: Log into Docker Hub
+          uses: docker/login-action@v2
+          with:
+            username: ${{secrets.DOCKERHUB_USERNAME}}
+            password: ${{secrets.DOCKERHUB_TOKEN}}
+        - name: Push the container to Docker Hub
+          run: docker push docker-hub-username/container-name
